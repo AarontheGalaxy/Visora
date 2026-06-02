@@ -6,6 +6,7 @@ Runs on the main thread (required by pygame + OpenGL on macOS).
 """
 
 import os
+import sys
 import pygame
 import moderngl
 
@@ -86,8 +87,10 @@ class VisualizerEngine:
             pygame.GL_CONTEXT_PROFILE_MASK,
             pygame.GL_CONTEXT_PROFILE_CORE,
         )
-        # MSAA removed: GL_MULTISAMPLEBUFFERS + GL_MULTISAMPLESAMPLES cause
-        # SIGBUS on macOS ARM (Apple Silicon) with the legacy OpenGL stack.
+        if sys.platform == "darwin":
+            # macOS requires forward-compatible flag for OpenGL 3.3 Core Profile.
+            # SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG = 0x0002
+            pygame.display.gl_set_attribute(pygame.GL_CONTEXT_FLAGS, 0x0002)
 
         flags = pygame.OPENGL | pygame.DOUBLEBUF
         if fullscreen:
