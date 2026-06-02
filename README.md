@@ -50,12 +50,12 @@ music in real time.
 |---|---|
 | Operating System | macOS 12 (Monterey) or newer, Windows 10, or Ubuntu 20.04 or newer |
 | Python | 3.10 or newer (3.12 recommended) |
-| GPU | Any GPU with OpenGL 3.3 Core Profile support |
+| GPU | Any GPU (software renderer — no OpenGL required) |
 | RAM | 4 GB |
-| Disk space | 600 MB (includes all Python packages) |
+| Disk space | 400 MB (includes all Python packages) |
 
 > **Apple Silicon (M1 / M2 / M3 / M4) is fully supported.**
-> Visora uses GLFW for window creation, which works natively on ARM Macs.
+> Visora uses a numpy software renderer with pygame 2D — no OpenGL dependency.
 
 ---
 
@@ -103,7 +103,7 @@ You should see something like `Python 3.12.4`. If you do, Python is ready.
 In the Terminal, type this command exactly and press Enter:
 
 ```
-python3 -m pip install moderngl PyOpenGL pyglet dearpygui numpy scipy librosa sounddevice soundcard Pillow
+python3 -m pip install pygame dearpygui numpy scipy librosa sounddevice soundcard Pillow
 ```
 
 This downloads and installs all the software Visora needs. It can take two to
@@ -197,7 +197,7 @@ cd %USERPROFILE%\Desktop\visora-main
 Then install the packages:
 
 ```
-python -m pip install moderngl PyOpenGL pyglet dearpygui numpy scipy librosa sounddevice soundcard Pillow
+python -m pip install pygame dearpygui numpy scipy librosa sounddevice soundcard Pillow
 ```
 
 Wait until you see `Successfully installed` before continuing.
@@ -284,7 +284,7 @@ pulseaudio --start
 From inside the `visora-main` folder:
 
 ```bash
-python3 -m pip install --user moderngl PyOpenGL pyglet dearpygui numpy scipy librosa sounddevice soundcard Pillow
+python3 -m pip install --user pygame dearpygui numpy scipy librosa sounddevice soundcard Pillow
 ```
 
 ### Step 5 — Run Visora
@@ -526,12 +526,12 @@ A required package is missing. Run this from inside the `visora-main` folder:
 
 **macOS and Linux:**
 ```
-python3 -m pip install moderngl PyOpenGL pyglet dearpygui numpy scipy librosa sounddevice soundcard Pillow
+python3 -m pip install pygame dearpygui numpy scipy librosa sounddevice soundcard Pillow
 ```
 
 **Windows:**
 ```
-python -m pip install moderngl PyOpenGL pyglet dearpygui numpy scipy librosa sounddevice soundcard Pillow
+python -m pip install pygame dearpygui numpy scipy librosa sounddevice soundcard Pillow
 ```
 
 ### The visualizer does not react to sound
@@ -547,12 +547,9 @@ python -m pip install moderngl PyOpenGL pyglet dearpygui numpy scipy librosa sou
 
 ### The visualizer window does not appear after clicking Launch
 
-- Wait up to five seconds — the window opens in a separate process and may
-  take a moment to appear.
 - Check the Terminal for any error messages printed after clicking Launch.
-- Make sure `pyglet` is installed: `python3 -m pip install pyglet`
-- **Linux:** make sure GLFW system libraries are installed:
-  `sudo apt install libglfw3 libglfw3-dev`
+- Make sure `pygame` is installed: `python3 -m pip install pygame`
+- On Linux, make sure SDL2 is available: `sudo apt install libsdl2-2.0-0`
 
 ### Two Visora windows opened at the same time
 
@@ -566,27 +563,17 @@ Then run `python3 main.py` again.
 ### The animation is choppy or slow
 
 - Switch to a smaller window size (1280 × 720 is the fastest).
-- Use **Spectrum** or **Waveform** mode instead of **Abstract** or
-  **Particles** — shader modes are more GPU-intensive.
-- Close other GPU-heavy applications (browsers with video, games).
-- On a laptop, plug in the charger — battery saving mode throttles the GPU.
-- Press **F** inside the visualizer to see the actual FPS counter.
+- Use **Spectrum** or **Waveform** mode — they are the lightest to render.
+- **Abstract** and **Particles** do more computation per frame; try a smaller
+  window if they feel slow.
+- Close other CPU-heavy applications running in the background.
+- On a laptop, plug in the charger — power-saving mode slows the CPU.
+- Press **F** inside the visualizer to see the FPS counter.
 
 ### On macOS: "macOS cannot verify the developer"
 
 1. Go to System Settings → Privacy & Security.
 2. Scroll down and click **Allow Anyway** next to the Visora message.
-
-### On macOS: OpenGL error or black window
-
-Make sure you are running Python 3.10 or newer and that `pyglet` is installed:
-
-```
-python3 -m pip install --upgrade pyglet moderngl
-```
-
-If the problem persists, your GPU may not support OpenGL 3.3 Core Profile.
-Integrated Intel graphics on very old Macs (pre-2012) do not support it.
 
 ---
 
@@ -599,10 +586,8 @@ projectM's `MilkdropFFT.cpp` and `PCM.cpp`.
 
 **MilkdropFFT algorithm** — Copyright 2005-2013 Nullsoft, Inc. BSD-style license.
 
-**moderngl** — `https://github.com/moderngl/moderngl` — MIT License
-
-**GLFW / pyglet** — `https://www.glfw.org` — zlib/libpng License  
-Cross-platform OpenGL window and context management.
+**pygame** — `https://www.pygame.org` — LGPL License  
+Window creation and display via SDL2 Metal backend.
 
 **Dear PyGui** — `https://github.com/hoffstadt/DearPyGui` — MIT License
 

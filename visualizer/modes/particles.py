@@ -1,101 +1,82 @@
-import numpy as np
-import moderngl
 import random
-
-
-MAX_PARTICLES = 2000
+import numpy as np
 
 
 class ParticlesMode:
     NAME = "Particles"
     DESCRIPTION = "Beat-reactive particle system"
 
-    def __init__(self, ctx: moderngl.Context, shader_dir: str):
-        self._ctx = ctx
-        with open(f"{shader_dir}/particles.vert") as f:
-            vert = f.read()
-        with open(f"{shader_dir}/particles.frag") as f:
-            frag = f.read()
-        self._prog = ctx.program(vertex_shader=vert, fragment_shader=frag)
+    MAX_PARTICLES = 600
 
-        # Each particle: x, y, vx, vy, life, size
-        dtype = np.dtype([
-            ("pos", np.float32, 2),
-            ("vel", np.float32, 2),
-            ("life", np.float32),
-            ("size", np.float32),
-        ])
-        self._particles = np.zeros(MAX_PARTICLES, dtype=dtype)
+    def __init__(self, width: int, height: int):
+        self._w = width
+        self._h = height
+        # Each row: [x, y, vx, vy, life, size]
+        self._buf = np.zeros((self.MAX_PARTICLES, 6), dtype=np.float32)
         self._count = 0
 
-        # GPU buffer: pos(2) + life(1) + size(1)
-        self._vbo = ctx.buffer(reserve=MAX_PARTICLES * 4 * 4)
-        self._vao = ctx.simple_vertex_array(
-            self._prog, self._vbo, "in_pos", "in_life", "in_size"
-        )
+    def render(self, frame_data, preset: dict) -> np.ndarray:
+        rgb = np.zeros((self._h, self._w, 3), dtype=np.uint8)
 
-    def render(self, frame_data, preset: dict):
-        bass = frame_data.bass
-        beat = frame_data.beat
-        rms = frame_data.rms
+        bass  = float(frame_data.bass)
+        beat  = frame_data.beat
+        rms   = float(frame_data.rms)
 
-        color = tuple(preset.get("color", [0.6, 0.3, 1.0]))
-        spawn_rate = preset.get("spawn_rate", 8)
-        gravity = preset.get("gravity", -0.0005)
-        decay = preset.get("decay", 0.012)
+        color      = np.array(preset.get("color",      [0.6, 0.3, 1.0]), dtype=np.float32)
+        spawn_rate = int(preset.get("spawn_rate", 8))
+        gravity    = float(preset.get("gravity",  -0.0005)) * self._h
+        decay      = float(preset.get("decay",     0.012))
 
-        # Spawn particles on beat or continuously based on RMS
+        # Spawn
         n_spawn = spawn_rate if beat else max(1, int(rms * spawn_rate))
-        n_spawn = min(n_spawn, MAX_PARTICLES - self._count)
+        n_spawn = min(n_spawn, self.MAX_PARTICLES - self._count)
 
+        cx, cy = self._w / 2.0, self._h / 2.0
         for _ in range(n_spawn):
-            if self._count >= MAX_PARTICLES:
-                break
-            p = self._particles[self._count]
-            p["pos"] = [random.uniform(-0.8, 0.8), random.uniform(-0.3, 0.3)]
-            angle = random.uniform(0, 2 * np.pi)
-            speed = random.uniform(0.002, 0.015) * (1 + bass * 3)
-            p["vel"] = [np.cos(angle) * speed, np.sin(angle) * speed + 0.008]
-            p["life"] = 1.0
-            p["size"] = random.uniform(3.0, 8.0) * (1 + bass)
+            angle = random.uniform(0.0, 2.0 * np.pi)
+            speed = random.uniform(1.0, 5.0) * (1.0 + bass * 3.0) * (self._h / 720.0)
+            p = self._buf[self._count]
+            p[0] = cx + random.uniform(-self._w * 0.1, self._w * 0.1)
+            p[1] = cy + random.uniform(-self._h * 0.05, self._h * 0.05)
+            p[2] = np.cos(angle) * speed
+            p[3] = np.sin(angle) * speed + speed * 0.3
+            p[4] = 1.0
+            p[5] = random.uniform(3.0, 8.0) * (1.0 + bass)
             self._count += 1
 
-        # Update
-        alive = []
-        for i in range(self._count):
-            p = self._particles[i]
-            p["pos"][0] += p["vel"][0]
-            p["pos"][1] += p["vel"][1]
-            p["vel"][1] += gravity
-            p["life"] -= decay
-            if p["life"] > 0:
-                alive.append(i)
-
-        if alive:
-            self._particles[:len(alive)] = self._particles[alive]
-        self._count = len(alive)
-
         if self._count == 0:
-            return
+            return rgb
 
-        # Pack GPU data
-        pts = self._particles[:self._count]
-        gpu = np.empty(self._count * 4, dtype=np.float32)
-        gpu[0::4] = pts["pos"][:, 0]
-        gpu[1::4] = pts["pos"][:, 1]
-        gpu[2::4] = pts["life"]
-        gpu[3::4] = pts["size"]
+        alive = self._buf[:self._count]
 
-        self._vbo.write(gpu.tobytes())
-        self._prog["u_color"].value = color
-        self._prog["u_beat"].value = 1.0 if beat else 0.0
+        # Physics update (vectorised)
+        alive[:, 0] += alive[:, 2]          # x += vx
+        alive[:, 1] += alive[:, 3]          # y += vy
+        alive[:, 3] += gravity              # vy += gravity
+        alive[:, 4] -= decay               # life -= decay
 
-        self._ctx.enable(moderngl.BLEND)
-        self._ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE
-        self._vao.render(moderngl.POINTS, vertices=self._count)
-        self._ctx.disable(moderngl.BLEND)
+        mask = alive[:, 4] > 0.0
+        n_alive = int(mask.sum())
+        if n_alive < self._count:
+            self._buf[:n_alive] = alive[mask]
+            self._count = n_alive
+            alive = self._buf[:self._count]
+
+        # Draw
+        cu8 = (np.clip(color, 0.0, 1.0) * 255).astype(np.uint8)
+        for i in range(self._count):
+            x   = int(alive[i, 0])
+            y   = int(alive[i, 1])
+            lif = float(alive[i, 4])
+            r   = max(1, int(alive[i, 5] * lif))
+
+            x0, x1 = max(0, x - r), min(self._w, x + r + 1)
+            y0, y1 = max(0, y - r), min(self._h, y + r + 1)
+            if x1 > x0 and y1 > y0:
+                c = (cu8 * lif).astype(np.uint8)
+                rgb[y0:y1, x0:x1] = np.maximum(rgb[y0:y1, x0:x1], c)
+
+        return rgb
 
     def cleanup(self):
-        self._vbo.release()
-        self._vao.release()
-        self._prog.release()
+        pass

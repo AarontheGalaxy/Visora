@@ -1,28 +1,24 @@
 """
-Visualization engine.
-Uses pyglet for window creation — does not conflict with DearPyGui's
-bundled GLFW (they each use separate Objective-C class namespaces on macOS).
-moderngl creates its OpenGL 3.3 Core context from the active pyglet window.
-Runs on the main thread (required on macOS).
+Visualization engine — software renderer.
+Uses pygame 2D (SDL2 Metal on macOS) with numpy pixel arrays.
+No OpenGL required — works on macOS 16 where OpenGL is removed/broken.
 """
 
 import os
-import moderngl
+import sys
+import time
 
 try:
-    import pyglet
-    import pyglet.gl
-    from pyglet.window import key as pyglet_key
+    import pygame
 except ImportError:
-    raise ImportError("pyglet is required. Run: pip install pyglet")
+    raise ImportError("pygame is required. Run: pip install pygame")
 
+import numpy as np
 from audio.analyzer import AudioAnalyzer
 from visualizer.modes.waveform import WaveformMode
 from visualizer.modes.spectrum import SpectrumMode
 from visualizer.modes.particles import ParticlesMode
 from visualizer.modes.abstract import AbstractMode
-
-SHADER_DIR = os.path.join(os.path.dirname(__file__), "shaders")
 
 MODE_CLASSES = {
     "Waveform":  WaveformMode,
@@ -56,107 +52,74 @@ class _EngineState:
 
 
 class VisualizerEngine:
-    """
-    OpenGL render loop backed by pyglet.
-    Audio source runs on its own thread; this class owns the GL context on the main thread.
-    """
-
     def __init__(self, analyzer: AudioAnalyzer, initial_config: dict):
         self._analyzer = analyzer
         self._config = initial_config
-        self._ctx = None
         self._mode_instance = None
         self._state = _EngineState()
-        self._window = None
-
-    # ------------------------------------------------------------------
 
     def run(self):
-        """Blocking — must be called from the main thread."""
+        pygame.init()
+
         w = self._config.get("width", 1280)
         h = self._config.get("height", 720)
         fullscreen = self._config.get("fullscreen", False)
 
-        gl_config = pyglet.gl.Config(
-            major_version=3,
-            minor_version=3,
-            forward_compat=True,
-            core_profile=True,
-            double_buffer=True,
-            depth_size=24,
-        )
+        flags = pygame.FULLSCREEN if fullscreen else 0
+        screen = pygame.display.set_mode((w, h), flags)
+        pygame.display.set_caption("Music Visualizer")
 
-        self._window = pyglet.window.Window(
-            width=w,
-            height=h,
-            caption="Music Visualizer",
-            fullscreen=fullscreen,
-            config=gl_config,
-            resizable=False,
-            vsync=True,
-        )
+        # Reusable surface for fast blit (avoids creating new surface every frame)
+        surf = pygame.Surface((w, h))
 
-        self._ctx = moderngl.create_context(require=330)
-        self._ctx.enable(moderngl.PROGRAM_POINT_SIZE)
-
-        self._load_mode(
-            self._config.get("mode", "Abstract"),
-            self._config.get("preset", {}),
-        )
+        self._load_mode(self._config.get("mode", "Abstract"),
+                        self._config.get("preset", {}), w, h)
 
         self._state.running = True
         hook = self._state.extra_frame_hook
+        clock = pygame.time.Clock()
 
-        engine = self
-
-        @self._window.event
-        def on_draw():
-            if not engine._state.running:
-                return
+        while self._state.running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self._state.running = False
+                elif event.type == pygame.KEYDOWN:
+                    self._handle_key(event.key)
 
             if hook:
                 hook()
 
-            pending = engine._state.consume_pending()
+            pending = self._state.consume_pending()
             if pending:
-                engine._load_mode(*pending)
+                mode_name, preset = pending
+                self._load_mode(mode_name, preset, w, h)
 
-            try:
-                fb_w, fb_h = engine._window.get_framebuffer_size()
-            except AttributeError:
-                fb_w, fb_h = engine._window.width, engine._window.height
+            frame_data = self._analyzer.read_frame()
+            rgb = self._mode_instance.render(
+                frame_data, self._config.get("preset", {}))
 
-            engine._ctx.viewport = (0, 0, fb_w, fb_h)
-            engine._ctx.clear(0.0, 0.0, 0.0, 1.0)
-
-            frame_data = engine._analyzer.read_frame()
-            engine._mode_instance.render(frame_data, engine._config.get("preset", {}))
-
-        @self._window.event
-        def on_key_press(symbol, modifiers):
-            if symbol == pyglet_key.ESCAPE:
-                engine._state.running = False
-                engine._window.close()
-            elif symbol == pyglet_key.F:
-                engine._state.show_overlay = not engine._state.show_overlay
-            elif symbol == pyglet_key.TAB:
-                modes = list(MODE_CLASSES.keys())
-                current = engine._config.get("mode", "Abstract")
-                try:
-                    idx = modes.index(current)
-                except ValueError:
-                    idx = 0
-                nxt = (idx + 1) % len(modes)
-                engine.set_mode(modes[nxt], engine._config.get("preset", {}))
-
-        @self._window.event
-        def on_close():
-            engine._state.running = False
-
-        pyglet.clock.schedule_interval(lambda dt: engine._window.dispatch_event("on_draw"), 1 / TARGET_FPS)
-        pyglet.app.run()
+            # rgb: HxWx3 uint8 → transpose to WxHx3 for pygame surfarray
+            pygame.surfarray.blit_array(surf, rgb.swapaxes(0, 1))
+            screen.blit(surf, (0, 0))
+            pygame.display.flip()
+            clock.tick(TARGET_FPS)
 
         self._cleanup()
+
+    def _handle_key(self, key: int):
+        if key == pygame.K_ESCAPE:
+            self._state.running = False
+        elif key == pygame.K_f:
+            self._state.show_overlay = not self._state.show_overlay
+        elif key == pygame.K_TAB:
+            modes = list(MODE_CLASSES.keys())
+            current = self._config.get("mode", "Abstract")
+            try:
+                idx = modes.index(current)
+            except ValueError:
+                idx = 0
+            nxt = (idx + 1) % len(modes)
+            self.set_mode(modes[nxt], self._config.get("preset", {}))
 
     def set_mode(self, mode_name: str, preset: dict):
         self._state.queue_mode(mode_name, preset)
@@ -172,14 +135,15 @@ class VisualizerEngine:
     def set_frame_hook(self, hook):
         self._state.extra_frame_hook = hook
 
-    def _load_mode(self, mode_name: str, preset: dict):
+    def _load_mode(self, mode_name: str, preset: dict, w: int, h: int):
         if self._mode_instance is not None:
             self._mode_instance.cleanup()
         cls = MODE_CLASSES.get(mode_name, AbstractMode)
-        self._mode_instance = cls(self._ctx, SHADER_DIR)
+        self._mode_instance = cls(w, h)
         self._config["mode"] = mode_name
         self._config["preset"] = preset
 
     def _cleanup(self):
         if self._mode_instance:
             self._mode_instance.cleanup()
+        pygame.quit()

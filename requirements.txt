@@ -1,10 +1,8 @@
-# Rendering
-moderngl>=5.10.0
-PyOpenGL>=3.1.7
-pyglet>=2.0.0
-
 # UI
 dearpygui>=2.0.0
+
+# Rendering (software renderer — no OpenGL required)
+pygame>=2.6.0
 
 # Audio analysis
 numpy>=1.26.0

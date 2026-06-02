@@ -1,50 +1,71 @@
+"""
+Abstract plasma mode — numpy software renderer.
+Milkdrop-style plasma using sin wave interference patterns.
+Rendered at half resolution then upscaled for performance.
+"""
+
 import numpy as np
-import moderngl
 
 
 class AbstractMode:
     NAME = "Abstract"
     DESCRIPTION = "Milkdrop-inspired plasma shader"
 
-    def __init__(self, ctx: moderngl.Context, shader_dir: str):
-        self._ctx = ctx
-        with open(f"{shader_dir}/abstract.vert") as f:
-            vert = f.read()
-        with open(f"{shader_dir}/abstract.frag") as f:
-            frag = f.read()
-        self._prog = ctx.program(vertex_shader=vert, fragment_shader=frag)
+    def __init__(self, width: int, height: int):
+        self._w = width
+        self._h = height
+        # Precompute half-res coordinate grids once
+        hw, hh = width // 2, height // 2
+        xx = np.linspace(0.0, 1.0, hw, dtype=np.float32)
+        yy = np.linspace(0.0, 1.0, hh, dtype=np.float32)
+        self._xx, self._yy = np.meshgrid(xx, yy)
+        self._t = 0.0
 
-        # Full-screen quad
-        quad = np.array([
-            -1.0, -1.0,
-             1.0, -1.0,
-            -1.0,  1.0,
-             1.0,  1.0,
-        ], dtype=np.float32)
-        self._vbo = ctx.buffer(quad.tobytes())
-        self._vao = ctx.simple_vertex_array(self._prog, self._vbo, "in_pos")
-        self._time = 0.0
+    def render(self, frame_data, preset: dict) -> np.ndarray:
+        self._t += 0.016
 
-    def render(self, frame_data, preset: dict):
-        self._time += 0.016  # ~60fps step
+        t = self._t
+        bass   = float(frame_data.bass)
+        mid    = float(frame_data.mid)
+        treble = float(frame_data.treble)
 
-        color_a = tuple(preset.get("color_a", [0.1, 0.0, 0.5]))
-        color_b = tuple(preset.get("color_b", [0.0, 1.0, 0.8]))
-        zoom = float(preset.get("zoom", 1.0))
+        zoom     = float(preset.get("zoom",     1.0))
         rotation = float(preset.get("rotation", 0.3))
 
-        self._prog["u_time"].value = self._time
-        self._prog["u_bass"].value = float(frame_data.bass)
-        self._prog["u_mid"].value = float(frame_data.mid)
-        self._prog["u_treble"].value = float(frame_data.treble)
-        self._prog["u_color_a"].value = color_a
-        self._prog["u_color_b"].value = color_b
-        self._prog["u_zoom"].value = zoom
-        self._prog["u_rotation"].value = rotation
+        xx = self._xx
+        yy = self._yy
 
-        self._vao.render(moderngl.TRIANGLE_STRIP)
+        # Centre and apply zoom
+        cx = (xx - 0.5) * zoom
+        cy = (yy - 0.5) * zoom
+
+        # Soft rotation driven by the rotation param + time
+        angle = t * rotation
+        cos_a, sin_a = np.cos(angle), np.sin(angle)
+        rx = cx * cos_a - cy * sin_a
+        ry = cx * sin_a + cy * cos_a
+
+        # Three sin waves — bass / mid / treble modulate amplitude
+        v  = np.sin(rx * 10.0 + t       + bass   * 3.0)
+        v += np.sin(ry * 8.0  - t * 0.7 + mid    * 2.0)
+        v += np.sin((rx + ry) * 6.0 + t * 1.3 + treble * 1.5)
+        v  = (v / 3.0 + 1.0) / 2.0          # normalise 0-1
+
+        # Colour mix
+        ca = np.array(preset.get("color_a", [0.1, 0.0, 0.5]), dtype=np.float32)
+        cb = np.array(preset.get("color_b", [0.0, 1.0, 0.8]), dtype=np.float32)
+
+        v3  = v[:, :, np.newaxis]
+        rgb_half = np.clip(ca * (1.0 - v3) + cb * v3, 0.0, 1.0)
+        rgb_half = (rgb_half * 255).astype(np.uint8)
+
+        # 2× nearest-neighbour upscale (no PIL needed)
+        rgb = np.repeat(np.repeat(rgb_half, 2, axis=0), 2, axis=1)
+
+        # Crop/pad to exact target size
+        rgb = rgb[:self._h, :self._w]
+
+        return rgb
 
     def cleanup(self):
-        self._vbo.release()
-        self._vao.release()
-        self._prog.release()
+        pass

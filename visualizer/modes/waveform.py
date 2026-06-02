@@ -1,44 +1,41 @@
 import numpy as np
-import moderngl
 
 
 class WaveformMode:
     NAME = "Waveform"
     DESCRIPTION = "Classic oscilloscope-style waveform"
 
-    def __init__(self, ctx: moderngl.Context, shader_dir: str):
-        self._ctx = ctx
-        with open(f"{shader_dir}/waveform.vert") as f:
-            vert = f.read()
-        with open(f"{shader_dir}/waveform.frag") as f:
-            frag = f.read()
-        self._prog = ctx.program(vertex_shader=vert, fragment_shader=frag)
+    def __init__(self, width: int, height: int):
+        self._w = width
+        self._h = height
 
-        n = 512
-        x = np.linspace(-1.0, 1.0, n, dtype=np.float32)
-        y = np.zeros(n, dtype=np.float32)
+    def render(self, frame_data, preset: dict) -> np.ndarray:
+        rgb = np.zeros((self._h, self._w, 3), dtype=np.uint8)
 
-        vdata = np.column_stack([x, y]).astype(np.float32)
-        self._vbo = ctx.buffer(vdata.tobytes())
-        self._vao = ctx.simple_vertex_array(self._prog, self._vbo, "in_x", "in_y")
+        waveform  = frame_data.waveform                          # 512 floats -1..1
+        color     = np.array(preset.get("color", [0.2, 0.8, 1.0]), dtype=np.float32)
+        amplitude = float(preset.get("amplitude", 0.7))
+        cu8       = (np.clip(color, 0.0, 1.0) * 255).astype(np.uint8)
 
-    def render(self, frame_data, preset: dict):
-        waveform = frame_data.waveform  # 512 floats -1..1
+        n  = len(waveform)
+        xs = (np.arange(n) / n * self._w).astype(np.int32)
+        ys = ((0.5 - np.clip(waveform * amplitude, -1.0, 1.0) * 0.45)
+              * self._h).astype(np.int32)
+        ys = np.clip(ys, 0, self._h - 1)
 
-        color = preset.get("color", [0.2, 0.8, 1.0])
-        n = len(waveform)
-        x = np.linspace(-1.0, 1.0, n, dtype=np.float32)
-        y = np.clip(waveform * preset.get("amplitude", 0.7), -1.0, 1.0).astype(np.float32)
+        # Draw a vertical slice at each x from previous y to current y
+        # — fast numpy column fill, no Python per-pixel loop
+        for i in range(len(xs) - 1):
+            x = int(xs[i])
+            if x < 0 or x >= self._w:
+                continue
+            y0 = int(min(ys[i], ys[i + 1]))
+            y1 = int(max(ys[i], ys[i + 1])) + 1
+            y0 = max(0, y0)
+            y1 = min(self._h, y1)
+            rgb[y0:y1, x] = cu8
 
-        vdata = np.column_stack([x, y]).astype(np.float32)
-        self._vbo.write(vdata.tobytes())
-
-        self._prog["u_color"].value = tuple(color)
-
-        self._ctx.line_width = preset.get("line_width", 2.0)
-        self._vao.render(moderngl.LINE_STRIP)
+        return rgb
 
     def cleanup(self):
-        self._vbo.release()
-        self._vao.release()
-        self._prog.release()
+        pass
