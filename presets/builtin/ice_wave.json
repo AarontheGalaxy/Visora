@@ -1,12 +1,15 @@
 {
   "name": "Ice Wave",
-  "mode": "Waveform",
+  "mode": "Abstract",
   "params": {
-    "color": [0.4, 0.8, 1.0],
-    "amplitude": 0.8,
-    "line_width": 2.5
+    "color_a": [0.0, 0.3, 0.7],
+    "color_b": [0.5, 0.9, 1.0],
+    "zoom": 1.03,
+    "rotation": -0.15,
+    "decay": 0.98,
+    "warp": 0.6
   },
-  "description": "Cool blue oscilloscope waveform",
+  "description": "Cool blue-white waves with heavy warp",
   "author": "Built-in",
   "builtin": true
 }

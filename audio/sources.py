@@ -70,19 +70,39 @@ class MicrophoneSource(AudioSource):
 # ---------------------------------------------------------------------------
 
 class SystemAudioSource(AudioSource):
-    """Captures all desktop audio using soundcard loopback."""
+    """Captures all desktop audio using soundcard loopback (Windows/Linux) or
+    sounddevice default input (macOS — loopback requires BlackHole or similar)."""
 
     def _run(self):
+        if sys.platform == "darwin":
+            self._run_sounddevice()
+            return
         try:
             import soundcard as sc
-        except ImportError:
-            raise RuntimeError("soundcard package required for system audio capture. Run: pip install soundcard")
+            mic = sc.get_microphone(
+                id=str(sc.default_speaker().name), include_loopback=True)
+            with mic.recorder(
+                    samplerate=SAMPLE_RATE, channels=1,
+                    blocksize=HOP_SIZE) as recorder:
+                while self._running:
+                    data = recorder.record(numframes=HOP_SIZE)
+                    self._analyzer.push_samples(data[:, 0])
+        except Exception:
+            self._run_sounddevice()
 
-        mic = sc.get_microphone(id=str(sc.default_speaker().name), include_loopback=True)
-        with mic.recorder(samplerate=SAMPLE_RATE, channels=1, blocksize=HOP_SIZE) as recorder:
+    def _run_sounddevice(self):
+        """Fallback: capture default input device (mic or virtual loopback)."""
+        def callback(indata, frames, time, status):  # noqa: ARG001
+            if not self._running:
+                raise sd.CallbackStop
+            self._analyzer.push_samples(indata[:, 0])
+
+        with sd.InputStream(
+            samplerate=SAMPLE_RATE, channels=1,
+            blocksize=HOP_SIZE, callback=callback, dtype="float32",
+        ):
             while self._running:
-                data = recorder.record(numframes=HOP_SIZE)
-                self._analyzer.push_samples(data[:, 0])
+                sd.sleep(100)
 
 
 # ---------------------------------------------------------------------------
@@ -110,11 +130,18 @@ class WindowAudioSource(AudioSource):
             raise RuntimeError("Per-window audio capture not supported on this platform.")
 
     def _run_macos(self):
-        """Capture per-process audio on macOS; falls back to system loopback."""
-        pid = self._window_info.get("pid")
-        if not pid:
-            raise ValueError("window_info must contain 'pid' for macOS capture")
-        _run_sck_capture(pid, self._analyzer, lambda: self._running)
+        """macOS: soundcard loopback crashes CoreAudio; use sounddevice instead."""
+        def callback(indata, frames, time, status):  # noqa: ARG001
+            if not self._running:
+                raise sd.CallbackStop
+            self._analyzer.push_samples(indata[:, 0])
+
+        with sd.InputStream(
+            samplerate=SAMPLE_RATE, channels=1,
+            blocksize=HOP_SIZE, callback=callback, dtype="float32",
+        ):
+            while self._running:
+                sd.sleep(100)
 
     def _run_windows(self):
         try:
