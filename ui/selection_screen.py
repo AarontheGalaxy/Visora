@@ -17,7 +17,7 @@ import dearpygui.dearpygui as dpg
 from audio.sources import list_audio_windows
 from presets.manager import PresetManager
 from presets.favorites import FavoritesManager
-from ui.help_content import SECTIONS, TOOLTIPS
+from ui.help_content import SECTIONS
 
 MODES = ["Abstract", "Spectrum", "Waveform", "Particles"]
 SOURCE_TYPES = ["System Audio", "Microphone", "Window / App", "Audio File"]
@@ -164,8 +164,6 @@ class SelectionScreen:
                     width=110, height=46,
                 )
 
-            with dpg.tooltip("launch_btn"):
-                dpg.add_text(TOOLTIPS["launch_btn"])
 
         # ── File dialogs ─────────────────────────────────────────────
         with dpg.file_dialog(
@@ -206,8 +204,6 @@ class SelectionScreen:
                 default_value="System Audio",
                 callback=self._on_source_type_change,
             )
-            with dpg.tooltip("source_type"):
-                dpg.add_text(TOOLTIPS["source_type"])
 
             dpg.add_spacer(height=8)
 
@@ -228,9 +224,6 @@ class SelectionScreen:
                     width=-1,
                     callback=self._on_window_search,
                 )
-                with dpg.tooltip("window_search"):
-                    dpg.add_text("Type to filter the app list. Works by app name.")
-
                 with dpg.group(horizontal=True):
                     dpg.add_button(
                         label="Refresh list",
@@ -245,16 +238,12 @@ class SelectionScreen:
                     num_items=7,
                     width=-1,
                 )
-                with dpg.tooltip("window_list"):
-                    dpg.add_text(TOOLTIPS["window_list"])
                 dpg.add_spacer(height=6)
 
             # File picker ─────────────────────────────────────────────
             with dpg.group(tag="file_picker_group", show=False):
                 dpg.add_text("Audio file:", color=(160, 160, 200))
                 dpg.add_input_text(tag="file_path", hint="Path to MP3/WAV…", width=-1)
-                with dpg.tooltip("file_path"):
-                    dpg.add_text(TOOLTIPS["file_path"])
                 dpg.add_button(
                     label="Browse…",
                     callback=lambda: dpg.show_item("file_dialog"),
@@ -281,8 +270,6 @@ class SelectionScreen:
                 default_value="Abstract",
                 callback=self._on_mode_change,
             )
-            with dpg.tooltip("vis_mode"):
-                dpg.add_text(TOOLTIPS["vis_mode"])
 
             dpg.add_spacer(height=8)
 
@@ -321,8 +308,6 @@ class SelectionScreen:
                         width=-1,
                         callback=self._on_preset_select,
                     )
-                    with dpg.tooltip("builtin_preset_list"):
-                        dpg.add_text(TOOLTIPS["builtin_preset_list"])
 
                 with dpg.tab(label="My Presets"):
                     dpg.add_listbox(
@@ -332,8 +317,6 @@ class SelectionScreen:
                         width=-1,
                         callback=self._on_preset_select,
                     )
-                    with dpg.tooltip("user_preset_list"):
-                        dpg.add_text(TOOLTIPS["user_preset_list"])
 
                 with dpg.tab(label="Favorites ★"):
                     dpg.add_listbox(
@@ -343,8 +326,6 @@ class SelectionScreen:
                         width=-1,
                         callback=self._on_preset_select,
                     )
-                    with dpg.tooltip("fav_preset_list"):
-                        dpg.add_text(TOOLTIPS["fav_preset_list"])
 
             dpg.add_spacer(height=6)
 
@@ -356,8 +337,6 @@ class SelectionScreen:
                     callback=self._toggle_favorite,
                     width=140,
                 )
-                with dpg.tooltip("fav_btn"):
-                    dpg.add_text(TOOLTIPS["fav_btn"])
 
                 dpg.add_spacer(width=6)
 
@@ -367,11 +346,6 @@ class SelectionScreen:
                     callback=lambda: dpg.show_item("milk_dialog"),
                     width=140,
                 )
-                with dpg.tooltip("import_milk_btn"):
-                    dpg.add_text(
-                        "Import a Milkdrop (.milk) preset file from your computer.\n"
-                        "Click ? next to Presets to learn where to find .milk files."
-                    )
 
                 dpg.add_spacer(width=6)
 
@@ -400,9 +374,6 @@ class SelectionScreen:
                 default_value="Neon",
                 width=-1,
             )
-            with dpg.tooltip("palette"):
-                dpg.add_text(TOOLTIPS["palette"])
-
             dpg.add_separator()
             dpg.add_spacer(height=8)
 
@@ -422,9 +393,6 @@ class SelectionScreen:
                 default_value="1280 × 720",
                 width=-1,
             )
-            with dpg.tooltip("window_size"):
-                dpg.add_text(TOOLTIPS["window_size"])
-
             dpg.add_separator()
             dpg.add_spacer(height=8)
 

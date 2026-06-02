@@ -211,6 +211,7 @@ def list_audio_windows() -> list[dict]:
 
 
 def _list_windows_macos() -> list[dict]:
+    # Try PyObjC first (richer info)
     try:
         from AppKit import NSWorkspace
         apps = NSWorkspace.sharedWorkspace().runningApplications()
@@ -220,6 +221,29 @@ def _list_windows_macos() -> list[dict]:
             pid = app.processIdentifier()
             if name and pid > 0:
                 results.append({"pid": int(pid), "name": str(name), "title": str(name)})
+        if results:
+            return results
+    except Exception:
+        pass
+
+    # Fallback: list all user processes via ps (no extra dependencies)
+    try:
+        import subprocess
+        out = subprocess.check_output(
+            ["ps", "-axco", "pid,comm"],
+            text=True, stderr=subprocess.DEVNULL,
+        )
+        results = []
+        for line in out.splitlines()[1:]:
+            parts = line.strip().split(None, 1)
+            if len(parts) == 2:
+                try:
+                    pid = int(parts[0])
+                    name = parts[1].strip()
+                    if name and pid > 0:
+                        results.append({"pid": pid, "name": name, "title": name})
+                except ValueError:
+                    pass
         return results
     except Exception:
         return []
