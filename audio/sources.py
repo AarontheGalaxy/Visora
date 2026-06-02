@@ -110,23 +110,10 @@ class WindowAudioSource(AudioSource):
             raise RuntimeError("Per-window audio capture not supported on this platform.")
 
     def _run_macos(self):
-        """
-        Uses ScreenCaptureKit via PyObjC to capture per-process audio.
-        Requires macOS 12.3+ and Screen Recording permission.
-        """
-        try:
-            from AppKit import NSRunLoop, NSDate
-            import ScreenCaptureKit as SCK  # type: ignore
-        except ImportError:
-            raise RuntimeError(
-                "PyObjC ScreenCaptureKit bridge required. Run: pip install pyobjc-framework-ScreenSaver"
-            )
-
+        """Capture per-process audio on macOS; falls back to system loopback."""
         pid = self._window_info.get("pid")
         if not pid:
             raise ValueError("window_info must contain 'pid' for macOS capture")
-
-        # Minimal ScreenCaptureKit setup — runs capture loop until stopped
         _run_sck_capture(pid, self._analyzer, lambda: self._running)
 
     def _run_windows(self):

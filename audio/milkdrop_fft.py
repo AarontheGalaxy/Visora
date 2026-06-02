@@ -34,9 +34,10 @@ class MilkdropFFT:
         spectrum = np.zeros(n, dtype=np.complex64)
 
         # 1. Bit-reversal reorder + envelope window
+        waveform_len = len(waveform)
         for i in range(n):
             idx = self._bit_rev[i]
-            if idx < self._samples_in:
+            if idx < waveform_len:
                 spectrum[i] = complex(waveform[idx] * self._envelope[idx], 0.0)
 
         # 2. Cooley-Tukey in-place FFT (ported 1:1 from MilkdropFFT.cpp)

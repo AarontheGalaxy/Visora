@@ -86,10 +86,10 @@ class VisualizerEngine:
             pygame.GL_CONTEXT_PROFILE_MASK,
             pygame.GL_CONTEXT_PROFILE_CORE,
         )
-        pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLEBUFFERS, 1)
-        pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLESAMPLES, 4)
+        # MSAA removed: GL_MULTISAMPLEBUFFERS + GL_MULTISAMPLESAMPLES cause
+        # SIGBUS on macOS ARM (Apple Silicon) with the legacy OpenGL stack.
 
-        flags = pygame.OPENGL | pygame.DOUBLEBUF | pygame.RESIZABLE
+        flags = pygame.OPENGL | pygame.DOUBLEBUF
         if fullscreen:
             flags |= pygame.FULLSCREEN
 
