@@ -1,0 +1,13 @@
+{
+  "name": "Galaxy Particles",
+  "mode": "Particles",
+  "params": {
+    "color": [0.5, 0.2, 1.0],
+    "spawn_rate": 12,
+    "gravity": -0.0004,
+    "decay": 0.010
+  },
+  "description": "Purple galaxy particle burst on every beat",
+  "author": "Built-in",
+  "builtin": true
+}

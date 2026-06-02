@@ -1,0 +1,12 @@
+{
+  "name": "Ice Wave",
+  "mode": "Waveform",
+  "params": {
+    "color": [0.4, 0.8, 1.0],
+    "amplitude": 0.8,
+    "line_width": 2.5
+  },
+  "description": "Cool blue oscilloscope waveform",
+  "author": "Built-in",
+  "builtin": true
+}

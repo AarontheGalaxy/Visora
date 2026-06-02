@@ -1,0 +1,13 @@
+{
+  "name": "Fire Spectrum",
+  "mode": "Spectrum",
+  "params": {
+    "color_low": [0.8, 0.1, 0.0],
+    "color_high": [1.0, 0.9, 0.1],
+    "height": 0.95,
+    "mirror": true
+  },
+  "description": "Fire-colored mirrored frequency bars",
+  "author": "Built-in",
+  "builtin": true
+}

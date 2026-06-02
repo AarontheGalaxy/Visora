@@ -1,0 +1,13 @@
+{
+  "name": "Sunset Abstract",
+  "mode": "Abstract",
+  "params": {
+    "color_a": [0.5, 0.05, 0.0],
+    "color_b": [1.0, 0.6, 0.0],
+    "zoom": 0.9,
+    "rotation": 0.15
+  },
+  "description": "Warm sunset plasma, slow and hypnotic",
+  "author": "Built-in",
+  "builtin": true
+}

@@ -1,0 +1,19 @@
+# Rendering
+moderngl>=5.10.0
+PyOpenGL>=3.1.7
+pygame>=2.6.0
+
+# UI
+dearpygui>=2.0.0
+
+# Audio analysis
+numpy>=1.26.0
+scipy>=1.11.0
+librosa>=0.10.0
+sounddevice>=0.4.6
+
+# System audio loopback (cross-platform)
+soundcard>=0.4.2
+
+# Utilities
+Pillow>=10.0.0
