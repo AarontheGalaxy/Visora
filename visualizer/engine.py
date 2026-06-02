@@ -1,19 +1,20 @@
 """
 Visualization engine.
-Uses GLFW for window creation — more reliable than pygame on macOS ARM.
-moderngl creates its OpenGL 3.3 Core context from the GLFW window.
-Runs on the main thread (required by GLFW + OpenGL on macOS).
+Uses pyglet for window creation — does not conflict with DearPyGui's
+bundled GLFW (they each use separate Objective-C class namespaces on macOS).
+moderngl creates its OpenGL 3.3 Core context from the active pyglet window.
+Runs on the main thread (required on macOS).
 """
 
 import os
-import sys
-import time
 import moderngl
 
 try:
-    import glfw
+    import pyglet
+    import pyglet.gl
+    from pyglet.window import key as pyglet_key
 except ImportError:
-    raise ImportError("pyglfw is required. Run: pip install pyglfw")
+    raise ImportError("pyglet is required. Run: pip install pyglet")
 
 from audio.analyzer import AudioAnalyzer
 from visualizer.modes.waveform import WaveformMode
@@ -31,11 +32,9 @@ MODE_CLASSES = {
 }
 
 TARGET_FPS = 60
-FRAME_TIME = 1.0 / TARGET_FPS
 
 
 class _EngineState:
-    """Groups mutable render-loop state."""
     def __init__(self):
         self.running = False
         self.pending_mode = None
@@ -58,7 +57,7 @@ class _EngineState:
 
 class VisualizerEngine:
     """
-    OpenGL render loop backed by GLFW.
+    OpenGL render loop backed by pyglet.
     Audio source runs on its own thread; this class owns the GL context on the main thread.
     """
 
@@ -71,34 +70,33 @@ class VisualizerEngine:
         self._window = None
 
     # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
 
     def run(self):
         """Blocking — must be called from the main thread."""
-        if not glfw.init():
-            raise RuntimeError("Failed to initialise GLFW")
-
         w = self._config.get("width", 1280)
         h = self._config.get("height", 720)
         fullscreen = self._config.get("fullscreen", False)
 
-        glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
-        glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
-        glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
-        glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, True)  # required on macOS
+        gl_config = pyglet.gl.Config(
+            major_version=3,
+            minor_version=3,
+            forward_compat=True,
+            core_profile=True,
+            double_buffer=True,
+            depth_size=24,
+        )
 
-        monitor = glfw.get_primary_monitor() if fullscreen else None
-        self._window = glfw.create_window(w, h, "Music Visualizer", monitor, None)
-        if not self._window:
-            glfw.terminate()
-            raise RuntimeError("Failed to create GLFW window — check OpenGL 3.3 support")
+        self._window = pyglet.window.Window(
+            width=w,
+            height=h,
+            caption="Music Visualizer",
+            fullscreen=fullscreen,
+            config=gl_config,
+            resizable=False,
+            vsync=True,
+        )
 
-        glfw.set_key_callback(self._window, self._key_callback)
-        glfw.make_context_current(self._window)
-        glfw.swap_interval(1)  # vsync on
-
-        self._ctx = moderngl.create_context()
+        self._ctx = moderngl.create_context(require=330)
         self._ctx.enable(moderngl.PROGRAM_POINT_SIZE)
 
         self._load_mode(
@@ -108,37 +106,59 @@ class VisualizerEngine:
 
         self._state.running = True
         hook = self._state.extra_frame_hook
-        last_time = time.perf_counter()
 
-        while not glfw.window_should_close(self._window) and self._state.running:
-            glfw.poll_events()
+        engine = self
+
+        @self._window.event
+        def on_draw():
+            if not engine._state.running:
+                return
 
             if hook:
                 hook()
 
-            pending = self._state.consume_pending()
+            pending = engine._state.consume_pending()
             if pending:
-                self._load_mode(*pending)
+                engine._load_mode(*pending)
 
-            w_px, h_px = glfw.get_framebuffer_size(self._window)
-            self._ctx.viewport = (0, 0, w_px, h_px)
-            self._ctx.clear(0.0, 0.0, 0.0, 1.0)
+            try:
+                fb_w, fb_h = engine._window.get_framebuffer_size()
+            except AttributeError:
+                fb_w, fb_h = engine._window.width, engine._window.height
 
-            frame_data = self._analyzer.read_frame()
-            self._mode_instance.render(frame_data, self._config.get("preset", {}))
+            engine._ctx.viewport = (0, 0, fb_w, fb_h)
+            engine._ctx.clear(0.0, 0.0, 0.0, 1.0)
 
-            glfw.swap_buffers(self._window)
+            frame_data = engine._analyzer.read_frame()
+            engine._mode_instance.render(frame_data, engine._config.get("preset", {}))
 
-            now = time.perf_counter()
-            sleep = FRAME_TIME - (now - last_time)
-            if sleep > 0:
-                time.sleep(sleep)
-            last_time = time.perf_counter()
+        @self._window.event
+        def on_key_press(symbol, modifiers):
+            if symbol == pyglet_key.ESCAPE:
+                engine._state.running = False
+                engine._window.close()
+            elif symbol == pyglet_key.F:
+                engine._state.show_overlay = not engine._state.show_overlay
+            elif symbol == pyglet_key.TAB:
+                modes = list(MODE_CLASSES.keys())
+                current = engine._config.get("mode", "Abstract")
+                try:
+                    idx = modes.index(current)
+                except ValueError:
+                    idx = 0
+                nxt = (idx + 1) % len(modes)
+                engine.set_mode(modes[nxt], engine._config.get("preset", {}))
+
+        @self._window.event
+        def on_close():
+            engine._state.running = False
+
+        pyglet.clock.schedule_interval(lambda dt: engine._window.dispatch_event("on_draw"), 1 / TARGET_FPS)
+        pyglet.app.run()
 
         self._cleanup()
 
     def set_mode(self, mode_name: str, preset: dict):
-        """Queue a mode switch — safe to call from any thread."""
         self._state.queue_mode(mode_name, preset)
         self._config["mode"] = mode_name
         self._config["preset"] = preset
@@ -152,28 +172,6 @@ class VisualizerEngine:
     def set_frame_hook(self, hook):
         self._state.extra_frame_hook = hook
 
-    # ------------------------------------------------------------------
-    # Internal
-    # ------------------------------------------------------------------
-
-    def _key_callback(self, window, key, scancode, action, mods):
-        if action != glfw.PRESS:
-            return
-        if key == glfw.KEY_ESCAPE:
-            self._state.running = False
-            glfw.set_window_should_close(window, True)
-        elif key == glfw.KEY_F:
-            self._state.show_overlay = not self._state.show_overlay
-        elif key == glfw.KEY_TAB:
-            modes = list(MODE_CLASSES.keys())
-            current = self._config.get("mode", "Abstract")
-            try:
-                idx = modes.index(current)
-            except ValueError:
-                idx = 0
-            nxt = (idx + 1) % len(modes)
-            self.set_mode(modes[nxt], self._config.get("preset", {}))
-
     def _load_mode(self, mode_name: str, preset: dict):
         if self._mode_instance is not None:
             self._mode_instance.cleanup()
@@ -185,6 +183,3 @@ class VisualizerEngine:
     def _cleanup(self):
         if self._mode_instance:
             self._mode_instance.cleanup()
-        if self._window:
-            glfw.destroy_window(self._window)
-        glfw.terminate()

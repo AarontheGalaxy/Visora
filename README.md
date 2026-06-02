@@ -103,7 +103,7 @@ You should see something like `Python 3.12.4`. If you do, Python is ready.
 In the Terminal, type this command exactly and press Enter:
 
 ```
-python3 -m pip install moderngl PyOpenGL pyglfw dearpygui numpy scipy librosa sounddevice soundcard Pillow
+python3 -m pip install moderngl PyOpenGL pyglet dearpygui numpy scipy librosa sounddevice soundcard Pillow
 ```
 
 This downloads and installs all the software Visora needs. It can take two to
@@ -197,7 +197,7 @@ cd %USERPROFILE%\Desktop\visora-main
 Then install the packages:
 
 ```
-python -m pip install moderngl PyOpenGL pyglfw dearpygui numpy scipy librosa sounddevice soundcard Pillow
+python -m pip install moderngl PyOpenGL pyglet dearpygui numpy scipy librosa sounddevice soundcard Pillow
 ```
 
 Wait until you see `Successfully installed` before continuing.
@@ -284,7 +284,7 @@ pulseaudio --start
 From inside the `visora-main` folder:
 
 ```bash
-python3 -m pip install --user moderngl PyOpenGL pyglfw dearpygui numpy scipy librosa sounddevice soundcard Pillow
+python3 -m pip install --user moderngl PyOpenGL pyglet dearpygui numpy scipy librosa sounddevice soundcard Pillow
 ```
 
 ### Step 5 — Run Visora
@@ -526,12 +526,12 @@ A required package is missing. Run this from inside the `visora-main` folder:
 
 **macOS and Linux:**
 ```
-python3 -m pip install moderngl PyOpenGL pyglfw dearpygui numpy scipy librosa sounddevice soundcard Pillow
+python3 -m pip install moderngl PyOpenGL pyglet dearpygui numpy scipy librosa sounddevice soundcard Pillow
 ```
 
 **Windows:**
 ```
-python -m pip install moderngl PyOpenGL pyglfw dearpygui numpy scipy librosa sounddevice soundcard Pillow
+python -m pip install moderngl PyOpenGL pyglet dearpygui numpy scipy librosa sounddevice soundcard Pillow
 ```
 
 ### The visualizer does not react to sound
@@ -550,7 +550,7 @@ python -m pip install moderngl PyOpenGL pyglfw dearpygui numpy scipy librosa sou
 - Wait up to five seconds — the window opens in a separate process and may
   take a moment to appear.
 - Check the Terminal for any error messages printed after clicking Launch.
-- Make sure `pyglfw` is installed: `python3 -m pip install pyglfw`
+- Make sure `pyglet` is installed: `python3 -m pip install pyglet`
 - **Linux:** make sure GLFW system libraries are installed:
   `sudo apt install libglfw3 libglfw3-dev`
 
@@ -579,10 +579,10 @@ Then run `python3 main.py` again.
 
 ### On macOS: OpenGL error or black window
 
-Make sure you are running Python 3.10 or newer and that `pyglfw` is installed:
+Make sure you are running Python 3.10 or newer and that `pyglet` is installed:
 
 ```
-python3 -m pip install --upgrade pyglfw moderngl
+python3 -m pip install --upgrade pyglet moderngl
 ```
 
 If the problem persists, your GPU may not support OpenGL 3.3 Core Profile.
@@ -601,7 +601,7 @@ projectM's `MilkdropFFT.cpp` and `PCM.cpp`.
 
 **moderngl** — `https://github.com/moderngl/moderngl` — MIT License
 
-**GLFW / pyglfw** — `https://www.glfw.org` — zlib/libpng License  
+**GLFW / pyglet** — `https://www.glfw.org` — zlib/libpng License  
 Cross-platform OpenGL window and context management.
 
 **Dear PyGui** — `https://github.com/hoffstadt/DearPyGui` — MIT License
