@@ -4,22 +4,18 @@ Visora — Entry point.
 Flow:
   1. Acquire single-instance lock (prevent duplicate windows)
   2. Show Dear PyGui selection screen (choose source, mode, preset)
-  3. Start audio source thread
-  4. Run OpenGL visualizer on main thread (required by macOS/GLFW)
+  3. Launch visualizer in a subprocess (isolates DearPyGui SDL2 from pygame SDL2)
 """
 
+import json
+import os
+import subprocess
 import sys
 
-from audio.analyzer import AudioAnalyzer
-from audio.sources import (
-    SystemAudioSource, WindowAudioSource,
-    MicrophoneSource, FileSource,
-)
 from presets.manager import PresetManager
 from presets.favorites import FavoritesManager
 from ui.selection_screen import SelectionScreen
 from ui.single_instance import acquire, release
-from visualizer.engine import VisualizerEngine
 
 
 def main():
@@ -45,37 +41,15 @@ def _run():
     if config is None:
         sys.exit(0)
 
-    analyzer = AudioAnalyzer()
-    source = _build_source(config, analyzer)
-    source.start()
-
-    engine = VisualizerEngine(analyzer, config)
-    engine.set_frame_hook(analyzer.update)
-
-    try:
-        engine.run()
-    finally:
-        source.stop()
-
-
-def _build_source(config: dict, analyzer: AudioAnalyzer):  # noqa: PLR0911
-    """Instantiate the correct audio source based on user selection."""
-    source_type = config.get("source_type", "System Audio")
-
-    if source_type == "Microphone":
-        return MicrophoneSource(analyzer)
-
-    if source_type == "Window / App":
-        return WindowAudioSource(analyzer, config.get("window_info") or {})
-
-    if source_type == "Audio File":
-        path = config.get("file_path", "")
-        if not path:
-            print("No audio file selected — falling back to system audio.")
-            return SystemAudioSource(analyzer)
-        return FileSource(analyzer, path)
-
-    return SystemAudioSource(analyzer)
+    # Launch the visualizer in a fresh subprocess so that DearPyGui's bundled
+    # SDL2 and pygame's SDL2 never coexist in the same process (they conflict
+    # on macOS, causing a segfault during OpenGL context creation).
+    config_json = json.dumps(config)
+    script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_run_visualizer.py")
+    subprocess.run(
+        [sys.executable, script],
+        input=config_json.encode(),
+    )
 
 
 if __name__ == "__main__":
