@@ -124,45 +124,37 @@ class SelectionScreen:
         with dpg.window(tag="main_window", no_title_bar=True, no_resize=True,
                         no_move=True, width=960, height=700, pos=(0, 0)):
 
-            # ── Header ──────────────────────────────────────────────
+            # ── Header (Launch always visible here) ──────────────────
             with dpg.group(horizontal=True):
-                dpg.add_text("Music Visualizer", color=(170, 130, 255))
-                dpg.add_spacer(width=16)
+                dpg.add_text("Visora", color=(170, 130, 255))
+                dpg.add_spacer(width=10)
                 dpg.add_button(
                     label=" ? Help & Guide ",
                     callback=lambda: dpg.show_item("help_window"),
                     tag="open_help_btn",
                 )
-            dpg.add_text(
-                "Pick your settings below, then click Launch. "
-                "Hover over any control for a quick tip.",
-                color=(150, 150, 180),
-            )
-            dpg.add_spacer(height=6)
+                dpg.add_spacer(width=16)
+                dpg.add_button(
+                    label="   Launch   ",
+                    tag="launch_btn",
+                    callback=self._on_launch,
+                    width=200, height=32,
+                )
+                dpg.add_spacer(width=6)
+                dpg.add_button(
+                    label="  Quit  ",
+                    callback=lambda: dpg.stop_dearpygui(),
+                    width=90, height=32,
+                )
+            dpg.add_spacer(height=4)
             dpg.add_separator()
-            dpg.add_spacer(height=8)
+            dpg.add_spacer(height=6)
 
             # ── Two columns ─────────────────────────────────────────
             with dpg.group(horizontal=True):
                 self._build_left_column()
                 dpg.add_spacer(width=10)
                 self._build_right_column()
-
-            # ── Launch / Quit ────────────────────────────────────────
-            dpg.add_spacer(height=10)
-            with dpg.group(horizontal=True):
-                dpg.add_button(
-                    label="   Launch   ",
-                    tag="launch_btn",
-                    callback=self._on_launch,
-                    width=220, height=46,
-                )
-                dpg.add_spacer(width=8)
-                dpg.add_button(
-                    label="   Quit   ",
-                    callback=lambda: dpg.stop_dearpygui(),
-                    width=110, height=46,
-                )
 
 
         # ── File dialogs ─────────────────────────────────────────────
@@ -186,7 +178,7 @@ class SelectionScreen:
     # ------------------------------------------------------------------
 
     def _build_left_column(self):
-        with dpg.child_window(width=430, height=560, border=True):
+        with dpg.child_window(width=430, height=610, border=True, no_scrollbar=True):
 
             # ── Audio Source ─────────────────────────────────────────
             with dpg.group(horizontal=True):
@@ -292,7 +284,7 @@ class SelectionScreen:
     # ------------------------------------------------------------------
 
     def _build_right_column(self):
-        with dpg.child_window(width=490, height=560, border=True):
+        with dpg.child_window(width=490, height=610, border=True, no_scrollbar=True):
 
             # ── Presets ───────────────────────────────────────────────
             with dpg.group(horizontal=True):
