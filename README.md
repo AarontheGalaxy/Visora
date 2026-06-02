@@ -1,11 +1,12 @@
 # Visora
 
 A real-time desktop music visualizer that reacts to any sound on your computer.
-It captures system audio, microphone input, a specific application, or an audio file,
-and renders GPU-accelerated animations synchronized to the music.
+It captures system audio, microphone input, a specific application, or an audio
+file, and renders GPU-accelerated animations synchronized to the music.
 
-Built on top of the projectM audio analysis engine with a clean, accessible user interface
-designed so that anyone — including first-time users — can get it running in minutes.
+Built on top of the projectM audio analysis engine with a clean, accessible user
+interface designed so that anyone — including first-time users — can get it
+running in minutes.
 
 ---
 
@@ -30,12 +31,16 @@ designed so that anyone — including first-time users — can get it running in
 
 When you open Visora you see a setup screen where you choose:
 
-- **Audio Source** — what sound to listen to (your whole computer, one specific app, microphone, or a file)
-- **Visualization Mode** — the style of animation (Abstract plasma, Spectrum bars, Waveform, or Particles)
+- **Audio Source** — what sound to listen to (your whole computer, one specific
+  app, your microphone, or an audio file)
+- **Visualization Mode** — the style of animation (Abstract plasma, Spectrum
+  bars, Waveform, or Particles)
 - **Preset** — a saved combination of colours and visual settings
 - **Color Palette** — the main colour scheme
+- **Window Size** — how large the visualizer window should be
 
-Click Launch and a full-screen or windowed animation starts, reacting to the music in real time.
+Click **Launch** and a full-screen or windowed animation starts, reacting to the
+music in real time.
 
 ---
 
@@ -43,11 +48,14 @@ Click Launch and a full-screen or windowed animation starts, reacting to the mus
 
 | | Minimum |
 |---|---|
-| Operating System | macOS 12, Windows 10, or Ubuntu 20.04 (or newer) |
-| Python | 3.10 or newer |
-| GPU | Any GPU with OpenGL 3.3 support (integrated graphics is fine) |
+| Operating System | macOS 12 (Monterey) or newer, Windows 10, or Ubuntu 20.04 or newer |
+| Python | 3.10 or newer (3.12 recommended) |
+| GPU | Any GPU with OpenGL 3.3 Core Profile support |
 | RAM | 4 GB |
-| Disk space | 500 MB (includes all Python packages) |
+| Disk space | 600 MB (includes all Python packages) |
+
+> **Apple Silicon (M1 / M2 / M3 / M4) is fully supported.**
+> Visora uses GLFW for window creation, which works natively on ARM Macs.
 
 ---
 
@@ -67,64 +75,61 @@ A file called `visora-main.zip` will download to your Downloads folder.
 Go to your Downloads folder and double-click the file to unzip it.
 You will get a folder called `visora-main`.
 
-Move this folder to a place that is easy to find again, such as your Desktop.
+Move this folder somewhere easy to find again, such as your Desktop.
 
 ### Step 2 — Install Python
 
 1. Open Safari or Chrome and go to: `https://www.python.org/downloads/`
 2. Click the large yellow button that says **Download Python 3.x.x**.
-   Any version that starts with 3.10 or higher is fine.
-3. Open the `.pkg` file that was downloaded and follow the steps in the installer.
-4. When the installer finishes, it will open a Finder window with a file called
-   **Install Certificates.command**. Double-click that file and let it run.
-   It will open a Terminal window and close automatically when done.
+   Any version 3.10 or higher is fine.
+3. Open the `.pkg` file that downloaded and follow the installer steps.
+4. When the installer finishes, a Finder window will open showing a file called
+   **Install Certificates.command**. Double-click it and let it run.
+   It opens a Terminal window and closes automatically when done.
 
-To verify that Python is installed correctly:
+To check Python is installed:
 
-1. Press `Command + Space` on your keyboard, type `Terminal`, and press Enter.
-   A white or black text window will open.
-2. Type the following line exactly and press Enter:
+1. Press `Command + Space`, type `Terminal`, and press Enter.
+2. Type the following and press Enter:
 
 ```
 python3 --version
 ```
 
-You should see a response like `Python 3.12.4`. If you see that, Python is ready.
+You should see something like `Python 3.12.4`. If you do, Python is ready.
 
 ### Step 3 — Install the required packages
 
-In the Terminal window, type the following command and press Enter.
-This installs all the software Visora needs to run.
+In the Terminal, type this command exactly and press Enter:
 
 ```
-python3 -m pip install moderngl PyOpenGL dearpygui numpy scipy librosa sounddevice soundcard Pillow pygame
+python3 -m pip install moderngl PyOpenGL pyglfw dearpygui numpy scipy librosa sounddevice soundcard Pillow
 ```
 
-You will see a lot of text as packages download and install. This can take
-two to five minutes depending on your internet speed. When it is finished
-you will see a line that says `Successfully installed`.
+This downloads and installs all the software Visora needs. It can take two to
+five minutes. When it finishes you will see `Successfully installed`.
 
-If you see a warning about pip being out of date, you can ignore it.
+If you see a warning about pip being out of date, you can safely ignore it.
 
 ### Step 4 — Grant macOS permissions (first run only)
 
-macOS protects audio access. The first time Visora tries to capture sound,
-macOS will ask you for permission.
+macOS protects audio access. The first time Visora captures sound, macOS will
+ask for permission.
 
-- For **System Audio** and **Window / App** mode: macOS will show a dialog that says
-  it needs **Screen Recording** permission. Click **Allow**.
-- For **Microphone** mode: macOS will ask for **Microphone** permission. Click **Allow**.
+- **System Audio** and **Window / App**: macOS will ask for **Screen Recording**
+  permission. Click **Allow**.
+- **Microphone**: macOS will ask for **Microphone** permission. Click **Allow**.
 
-If you accidentally clicked Don't Allow, go to:
-System Settings > Privacy & Security > Screen Recording (or Microphone)
+If you accidentally clicked "Don't Allow", go to:
+**System Settings → Privacy & Security → Screen Recording** (or Microphone)
 and turn on the toggle for Terminal.
 
-You only need to grant these permissions once.
+You only need to do this once.
 
 ### Step 5 — Run Visora
 
-In the Terminal, navigate to the `visora-main` folder you downloaded.
-If you put it on your Desktop, type this and press Enter:
+In Terminal, navigate to the `visora-main` folder. If you put it on your
+Desktop, type:
 
 ```
 cd ~/Desktop/visora-main
@@ -144,11 +149,12 @@ The Visora setup window will appear on your screen.
 
 ### Step 1 — Download Visora
 
-On the GitHub page, click the green **Code** button near the top, then click **Download ZIP**.
+On the GitHub page, click the green **Code** button near the top, then click
+**Download ZIP**.
 
 Open your Downloads folder. You will see a file called `visora-main.zip`.
-Right-click it and select **Extract All**. When asked where to extract,
-choose your Desktop and click **Extract**.
+Right-click it and select **Extract All**. When asked where to extract, choose
+your Desktop and click **Extract**.
 
 You will get a folder called `visora-main` on your Desktop.
 
@@ -156,35 +162,33 @@ You will get a folder called `visora-main` on your Desktop.
 
 1. Open your browser and go to: `https://www.python.org/downloads/windows/`
 2. Click the top result that says **Python 3.x.x** (the latest version).
-3. On the next page, scroll down to the **Files** section.
-   Click the link that says **Windows installer (64-bit)** to download it.
-4. Open the installer file from your Downloads folder.
+3. Scroll down to the **Files** section and click
+   **Windows installer (64-bit)**.
+4. Open the installer from your Downloads folder.
 
-**This step is critical:** On the very first screen of the installer you will
-see a small checkbox at the bottom that says **Add Python to PATH**.
-Check that box before you click anything else.
-If you do not check it, Visora will not be able to run.
+**Critical:** On the very first screen of the installer there is a small
+checkbox at the bottom that says **Add Python to PATH**.
+**Check that box before clicking anything else.**
+If you miss it, Visora will not be able to run.
 
-After checking that box, click **Install Now** and follow the remaining steps.
+After checking the box, click **Install Now** and follow the remaining steps.
 
-To verify Python is installed:
+To verify Python installed correctly:
 
-1. Press the Windows key on your keyboard. Type `cmd` and press Enter.
-   A black window called **Command Prompt** will open.
-2. Type the following and press Enter:
+1. Press the Windows key, type `cmd`, and press Enter.
+2. In the Command Prompt window, type:
 
 ```
 python --version
 ```
 
-You should see something like `Python 3.12.4`.
-If you see an error, go back and reinstall Python, making sure to check
-**Add Python to PATH**.
+You should see something like `Python 3.12.4`. If you see an error, reinstall
+Python and make sure to check **Add Python to PATH**.
 
 ### Step 3 — Install the required packages
 
-In the Command Prompt window, navigate to the `visora-main` folder.
-If you extracted it to your Desktop, type this and press Enter:
+In Command Prompt, navigate to the `visora-main` folder. If you extracted it to
+your Desktop, type:
 
 ```
 cd %USERPROFILE%\Desktop\visora-main
@@ -193,14 +197,14 @@ cd %USERPROFILE%\Desktop\visora-main
 Then install the packages:
 
 ```
-python -m pip install moderngl PyOpenGL dearpygui numpy scipy librosa sounddevice soundcard Pillow pygame
+python -m pip install moderngl PyOpenGL pyglfw dearpygui numpy scipy librosa sounddevice soundcard Pillow
 ```
 
 Wait until you see `Successfully installed` before continuing.
 
 ### Step 4 — Run Visora
 
-In the Command Prompt, from the `visora-main` folder, type:
+In Command Prompt, from the `visora-main` folder, type:
 
 ```
 python main.py
@@ -209,29 +213,29 @@ python main.py
 The Visora setup window will appear.
 
 **About system audio on Windows:**
-Visora uses Windows WASAPI loopback to capture desktop audio without any
-extra software. If the visualizer is not reacting to sound, right-click the
-speaker icon in the taskbar, open **Sound settings**, and make sure your
-speakers or headphones are set as the default playback device.
+Visora uses Windows WASAPI loopback to capture desktop audio without any extra
+software. If the visualizer does not react to sound, right-click the speaker
+icon in the taskbar, open **Sound settings**, and confirm your speakers or
+headphones are set as the default playback device.
 
 ---
 
 ## Installation — Linux
 
-These instructions are written for Ubuntu 20.04 and newer, and other Debian-based
-distributions. For Fedora, replace `apt` with `dnf`. For Arch Linux, use `pacman`.
+These instructions are for Ubuntu 20.04 and newer and other Debian-based
+distributions. For Fedora, replace `apt` with `dnf`. For Arch Linux, use
+`pacman`.
 
 ### Step 1 — Download Visora
 
-If you have `git` installed, clone the repository:
+If you have `git` installed:
 
 ```bash
 git clone https://github.com/AarontheGalaxy/visora.git
 cd visora
 ```
 
-If you do not have git, download the ZIP from GitHub
-(click **Code** > **Download ZIP**), then open a Terminal and run:
+If not, download the ZIP from GitHub (click **Code** → **Download ZIP**), then:
 
 ```bash
 cd ~/Downloads
@@ -241,17 +245,15 @@ cd visora-main
 
 ### Step 2 — Install Python and system libraries
 
-Run these commands one at a time in the Terminal:
-
 ```bash
 sudo apt update
 ```
 
 ```bash
-sudo apt install python3 python3-pip python3-dev portaudio19-dev libsndfile1 ffmpeg
+sudo apt install python3 python3-pip python3-dev portaudio19-dev libsndfile1 ffmpeg libglfw3 libglfw3-dev
 ```
 
-Verify Python is ready:
+Verify Python:
 
 ```bash
 python3 --version
@@ -282,7 +284,7 @@ pulseaudio --start
 From inside the `visora-main` folder:
 
 ```bash
-python3 -m pip install --user moderngl PyOpenGL dearpygui numpy scipy librosa sounddevice soundcard Pillow pygame
+python3 -m pip install --user moderngl PyOpenGL pyglfw dearpygui numpy scipy librosa sounddevice soundcard Pillow
 ```
 
 ### Step 5 — Run Visora
@@ -308,14 +310,14 @@ python3 main.py
 python main.py
 ```
 
-A quick way to navigate to the folder on macOS and Linux:
+Navigate to the folder quickly:
 
+**macOS / Linux:**
 ```
 cd ~/Desktop/visora-main
 ```
 
-On Windows:
-
+**Windows:**
 ```
 cd %USERPROFILE%\Desktop\visora-main
 ```
@@ -326,70 +328,97 @@ cd %USERPROFILE%\Desktop\visora-main
 
 ### Left panel — Audio Source and Visualization Mode
 
-**Audio Source**
+#### Audio Source
 
 | Option | What it does |
 |---|---|
-| System Audio | Captures all sound playing on your computer — music, videos, games. |
-| Microphone | Listens to your microphone. |
-| Window / App | Captures audio from one specific application (e.g. Spotify, Chrome, VLC). |
+| System Audio | Captures all sound playing on your computer — music, videos, games, browser tabs. |
+| Microphone | Listens to your microphone. Good for live instruments, singing, or clapping. |
+| Window / App | Captures audio from one specific running application (e.g. Spotify, Chrome, VLC). |
 | Audio File | Load an MP3, WAV, FLAC, or OGG file from your computer. |
 
-When you choose **Window / App**, a list of running applications appears.
-Use the **search box** to filter by name — type part of the app name to find it
-instantly without scrolling. Click **Refresh list** if you started an app after
-the Visora setup screen was already open.
+**When you choose Window / App:**
 
-When you choose **Audio File**, click **Browse** to open a file picker.
+1. A list of currently running applications appears automatically.
+2. Use the **search box** to filter by name — type part of the app name to find
+   it instantly.
+3. Click the app you want. A green **✓ AppName** label appears below the list
+   to confirm your selection.
+4. Click **Refresh list** if you started an app after the Visora setup screen
+   was already open.
 
-**Visualization Mode**
+**When you choose Audio File:**
+
+Click **Browse…** to open a file picker. Supported formats: MP3, WAV, FLAC, OGG.
+
+#### Visualization Mode
 
 | Mode | Description |
 |---|---|
-| Abstract | Full-screen plasma animation inspired by Milkdrop. Reacts to bass, mids, and treble. The most visually striking mode. |
-| Spectrum | Frequency bars. Left side shows bass (low sounds), right side shows treble (high sounds). |
-| Waveform | An oscilloscope line that shows the raw shape of the audio wave. |
-| Particles | Sparks that burst outward on every beat. Best for energetic music. |
+| Abstract | Full-screen plasma shader inspired by Milkdrop. Reacts to bass, mids, and treble simultaneously. The most visually impressive mode. |
+| Spectrum | Classic frequency bars — left side = bass (low sounds), right side = treble (high sounds). The taller a bar, the louder that frequency. |
+| Waveform | An oscilloscope line showing the raw shape of the audio wave. Good for seeing the detail of instruments and vocals. |
+| Particles | Sparks that burst outward on every beat. More bass = bigger burst. Great for energetic music like EDM or hip-hop. |
+
+---
 
 ### Right panel — Presets, Colors, and Window Size
 
-**Presets**
+#### Presets
 
-A preset is a saved combination of colours, speed, and visual parameters.
+A preset is a saved combination of colours, speed, and visual parameters — like
+a "theme" for the visualizer.
 
-- **Built-in** tab: presets that come with Visora. These cannot be deleted.
-- **My Presets** tab: presets you have imported or added yourself.
-- **Favorites** tab: presets you have bookmarked for quick access.
+The preset browser has four tabs:
 
-Click a preset to select it. The Visualization Mode on the left updates automatically.
+| Tab | Contents |
+|---|---|
+| **All** | Every preset in one list — the easiest place to browse. |
+| **Built-in** | Presets that come with Visora. These cannot be deleted. |
+| **My Presets** | Presets you have imported or saved yourself. |
+| **Favorites ★** | Presets you have bookmarked for quick access. |
 
-**Color Palette**
+Click any preset to select it. The **Visualization Mode** on the left updates
+automatically to match the preset.
+
+**Preset action buttons:**
+
+- **★ Favorite** — bookmark the selected preset. Click again to remove.
+- **Import .milk** — import a Milkdrop preset file (see section below).
+- **? .milk guide** — open the built-in guide for importing Milkdrop presets.
+
+#### Color Palette
+
+The palette controls the main colours of the visualizer. It blends with the
+preset's own colour settings.
 
 | Palette | Description |
 |---|---|
-| Neon | Electric purple and teal. |
-| Fire | Deep red fading to bright yellow. |
-| Ice | Cool blue-white. |
-| Sunset | Orange and warm gold. |
-| Purple | Violet tones. |
-| Mono | Pure white. Works with any mode. |
+| Neon | Electric purple and teal. Vivid and cyberpunk. |
+| Fire | Deep red fading to bright yellow. Hot and energetic. |
+| Ice | Cool blue-white. Calm and clean. |
+| Sunset | Orange and warm gold. Relaxed and warm. |
+| Purple | Violet tones. Great for lo-fi or ambient. |
+| Mono | Pure white. Minimal, works with any mode. |
 
-**Window Size**
+#### Window Size
 
 | Option | Notes |
 |---|---|
-| 1280 x 720 | Standard HD. Runs on any machine including older laptops. |
-| 1920 x 1080 | Full HD. |
-| 2560 x 1440 | 2K resolution. Requires a more capable GPU. |
+| 1280 × 720 | Standard HD. Works on any display, including older laptops. |
+| 1920 × 1080 | Full HD. Sharp on large screens. |
+| 2560 × 1440 | 2K. Requires a more capable GPU. |
 | Fullscreen | Takes over the entire screen. Press ESC to exit. |
+
+---
 
 ### In-app help
 
 Click **? Help & Guide** at the top of the setup screen to open the built-in
-documentation. Every feature is explained there in full detail.
+documentation. Every feature is explained there in full.
 
-Every section also has a small **?** button next to its heading that opens the
-relevant help topic directly. Hovering over any control shows a short tooltip.
+Each section also has a small **?** button next to its heading that opens the
+relevant help topic directly.
 
 ---
 
@@ -400,8 +429,8 @@ These shortcuts work while the Visora animation window is running.
 | Key | Action |
 |---|---|
 | TAB | Cycle to the next visualization mode |
-| ESC | Close the visualizer |
-| F | Toggle the FPS and performance overlay |
+| ESC | Close the visualizer and return to the setup screen |
+| F | Toggle the FPS / performance overlay |
 
 ---
 
@@ -409,7 +438,7 @@ These shortcuts work while the Visora animation window is running.
 
 ### Adding a preset manually
 
-Presets are JSON files stored here:
+Presets are JSON files stored in your home folder:
 
 **macOS and Linux:**
 ```
@@ -433,25 +462,30 @@ Create a `.json` file in that folder with this structure:
     "zoom": 1.1,
     "rotation": 0.4
   },
-  "description": "A short description",
+  "description": "A short description of what it looks like",
   "author": "Your name",
   "builtin": false
 }
 ```
 
-Valid values for `mode`: `Abstract`, `Spectrum`, `Waveform`, `Particles`.
+Valid values for `"mode"`: `Abstract`, `Spectrum`, `Waveform`, `Particles`.
+
+All `params` values are optional. If a key is missing, the default value is
+used. Color values are RGB floats between 0.0 and 1.0.
 
 ### Managing favorites
 
-Click any preset in the list, then click **Favorite** to bookmark it.
-Click **Unfav** to remove it. Favorites are saved automatically.
+Click any preset in the list, then click **★ Favorite** to bookmark it.
+The preset instantly appears in the **Favorites ★** tab.
+Click **★ Unfav** to remove it. Favorites are saved automatically and
+remembered every time you open the app.
 
 ---
 
 ## Importing Milkdrop (.milk) Presets
 
-Milkdrop presets are visual programs originally made for the Winamp media player.
-Thousands of free presets are available online and work with Visora.
+Milkdrop presets are visual programs originally made for the Winamp media
+player. Thousands of free presets are available online and work with Visora.
 
 ### Where to find .milk files
 
@@ -466,12 +500,12 @@ Thousands of free presets are available online and work with Visora.
 2. Open Visora and go to the setup screen.
 3. In the **Presets** section, click **Import .milk**.
 4. Browse to the `.milk` file and select it.
-5. The preset appears in **My Presets** immediately.
+5. The preset appears in **My Presets** and **All** immediately.
 6. Click it, then click **Launch**.
 
 Simple `.milk` presets (colours, zoom, rotation) import fully and run in
-Abstract mode. Complex presets with custom shader code may render with
-reduced detail, as full HLSL compilation is not yet supported.
+Abstract mode. Complex presets with custom HLSL shader code are mapped to
+Abstract mode with the colour parameters extracted.
 
 ---
 
@@ -481,74 +515,96 @@ reduced detail, as full HLSL compilation is not yet supported.
 
 Python is not installed or not on your PATH.
 
-- On Windows: reinstall Python and check **Add Python to PATH** during setup.
-- On macOS: make sure you downloaded Python from `python.org` and ran the
+- **Windows:** reinstall Python and check **Add Python to PATH** during setup.
+- **macOS:** make sure you downloaded Python from `python.org` and ran the
   Install Certificates script after installing.
-- On Linux: run `sudo apt install python3`.
+- **Linux:** run `sudo apt install python3`.
 
 ### "No module named X" error
 
-A required package is missing. Run this from the `visora-main` folder:
+A required package is missing. Run this from inside the `visora-main` folder:
 
 **macOS and Linux:**
 ```
-python3 -m pip install moderngl PyOpenGL dearpygui numpy scipy librosa sounddevice soundcard Pillow pygame
+python3 -m pip install moderngl PyOpenGL pyglfw dearpygui numpy scipy librosa sounddevice soundcard Pillow
 ```
 
 **Windows:**
 ```
-python -m pip install moderngl PyOpenGL dearpygui numpy scipy librosa sounddevice soundcard Pillow pygame
+python -m pip install moderngl PyOpenGL pyglfw dearpygui numpy scipy librosa sounddevice soundcard Pillow
 ```
 
 ### The visualizer does not react to sound
 
-- Confirm something is playing on your computer with the volume turned up.
-- **macOS**: System Settings > Privacy & Security > Screen Recording —
-  make sure Terminal has permission. Repeat for Microphone.
-- **Windows**: right-click the speaker in the taskbar > Sound settings —
-  confirm your playback device is the default.
-- **Linux**: run `pulseaudio --check -v` to confirm it is running.
-- Test with **Microphone** mode: speak into your microphone to see if
-  the visualizer reacts at all.
+- Make sure something is playing on your computer with the volume turned up.
+- **macOS:** System Settings → Privacy & Security → Screen Recording — make
+  sure Terminal has permission. Repeat for Microphone if using that mode.
+- **Windows:** right-click the speaker icon in the taskbar → Sound settings —
+  confirm your playback device is set as the default.
+- **Linux:** run `pulseaudio --check -v` to confirm PulseAudio is running.
+- Test with **Microphone** mode: speak into your mic to check if the
+  visualizer reacts at all.
+
+### The visualizer window does not appear after clicking Launch
+
+- Wait up to five seconds — the window opens in a separate process and may
+  take a moment to appear.
+- Check the Terminal for any error messages printed after clicking Launch.
+- Make sure `pyglfw` is installed: `python3 -m pip install pyglfw`
+- **Linux:** make sure GLFW system libraries are installed:
+  `sudo apt install libglfw3 libglfw3-dev`
 
 ### Two Visora windows opened at the same time
 
 Close both windows, then delete this file:
 
-- macOS / Linux: `~/.visora/app.lock`
-- Windows: `C:\Users\YourName\.visora\app.lock`
+- **macOS / Linux:** `~/.visora/app.lock`
+- **Windows:** `C:\Users\YourName\.visora\app.lock`
 
-Then run `python3 main.py` once.
+Then run `python3 main.py` again.
 
 ### The animation is choppy or slow
 
-- Switch to a smaller window size (1280 x 720 is the fastest).
-- Use Spectrum or Waveform mode instead of Abstract or Particles.
-- Close GPU-heavy applications (browsers with video, games).
-- On a laptop, plug in the charger — battery saving reduces GPU performance.
-- Press **F** to see the FPS counter.
+- Switch to a smaller window size (1280 × 720 is the fastest).
+- Use **Spectrum** or **Waveform** mode instead of **Abstract** or
+  **Particles** — shader modes are more GPU-intensive.
+- Close other GPU-heavy applications (browsers with video, games).
+- On a laptop, plug in the charger — battery saving mode throttles the GPU.
+- Press **F** inside the visualizer to see the actual FPS counter.
 
 ### On macOS: "macOS cannot verify the developer"
 
-1. Go to System Settings > Privacy & Security.
+1. Go to System Settings → Privacy & Security.
 2. Scroll down and click **Allow Anyway** next to the Visora message.
+
+### On macOS: OpenGL error or black window
+
+Make sure you are running Python 3.10 or newer and that `pyglfw` is installed:
+
+```
+python3 -m pip install --upgrade pyglfw moderngl
+```
+
+If the problem persists, your GPU may not support OpenGL 3.3 Core Profile.
+Integrated Intel graphics on very old Macs (pre-2012) do not support it.
 
 ---
 
 ## Credits
 
-**projectM** — `https://github.com/projectM-visualizer/projectm`
-Copyright (C) 2003-2024 projectM Team. LGPL v2.1.
-`audio/milkdrop_fft.py` and `audio/pcm_buffer.py` are direct Python ports
-of projectM's MilkdropFFT.cpp and PCM.cpp.
+**projectM** — `https://github.com/projectM-visualizer/projectm`  
+Copyright (C) 2003-2024 projectM Team. LGPL v2.1.  
+`audio/milkdrop_fft.py` and `audio/pcm_buffer.py` are direct Python ports of
+projectM's `MilkdropFFT.cpp` and `PCM.cpp`.
 
 **MilkdropFFT algorithm** — Copyright 2005-2013 Nullsoft, Inc. BSD-style license.
 
 **moderngl** — `https://github.com/moderngl/moderngl` — MIT License
 
-**Dear PyGui** — `https://github.com/hoffstadt/DearPyGui` — MIT License
+**GLFW / pyglfw** — `https://www.glfw.org` — zlib/libpng License  
+Cross-platform OpenGL window and context management.
 
-**pygame** — `https://www.pygame.org` — LGPL License
+**Dear PyGui** — `https://github.com/hoffstadt/DearPyGui` — MIT License
 
 **librosa** — `https://librosa.org` — ISC License
 

@@ -1,14 +1,19 @@
 """
 Visualization engine.
-Uses pygame for window creation (avoids GLFW conflict with dearpygui on macOS).
-moderngl creates its OpenGL context from the active pygame GL surface.
-Runs on the main thread (required by pygame + OpenGL on macOS).
+Uses GLFW for window creation — more reliable than pygame on macOS ARM.
+moderngl creates its OpenGL 3.3 Core context from the GLFW window.
+Runs on the main thread (required by GLFW + OpenGL on macOS).
 """
 
 import os
 import sys
-import pygame
+import time
 import moderngl
+
+try:
+    import glfw
+except ImportError:
+    raise ImportError("pyglfw is required. Run: pip install pyglfw")
 
 from audio.analyzer import AudioAnalyzer
 from visualizer.modes.waveform import WaveformMode
@@ -19,10 +24,10 @@ from visualizer.modes.abstract import AbstractMode
 SHADER_DIR = os.path.join(os.path.dirname(__file__), "shaders")
 
 MODE_CLASSES = {
-    "Waveform": WaveformMode,
-    "Spectrum": SpectrumMode,
+    "Waveform":  WaveformMode,
+    "Spectrum":  SpectrumMode,
     "Particles": ParticlesMode,
-    "Abstract": AbstractMode,
+    "Abstract":  AbstractMode,
 }
 
 TARGET_FPS = 60
@@ -30,21 +35,19 @@ FRAME_TIME = 1.0 / TARGET_FPS
 
 
 class _EngineState:
-    """Groups mutable render-loop state to stay under the attribute limit."""
+    """Groups mutable render-loop state."""
     def __init__(self):
         self.running = False
-        self.pending_mode: str | None = None
-        self.pending_preset: dict | None = None
+        self.pending_mode = None
+        self.pending_preset = None
         self.show_overlay = False
         self.extra_frame_hook = None
 
     def queue_mode(self, mode: str, preset: dict):
-        """Queue a mode switch to be applied on the next frame."""
         self.pending_mode = mode
         self.pending_preset = preset
 
-    def consume_pending(self) -> tuple[str, dict] | None:
-        """Return and clear any queued mode switch, or None if none pending."""
+    def consume_pending(self):
         if self.pending_mode is None:
             return None
         result = (self.pending_mode, self.pending_preset or {})
@@ -55,18 +58,17 @@ class _EngineState:
 
 class VisualizerEngine:
     """
-    OpenGL render loop backed by pygame.
+    OpenGL render loop backed by GLFW.
     Audio source runs on its own thread; this class owns the GL context on the main thread.
-    Mode/preset switches are queued from any thread via set_mode() and applied each frame.
     """
 
     def __init__(self, analyzer: AudioAnalyzer, initial_config: dict):
         self._analyzer = analyzer
         self._config = initial_config
-        self._ctx: moderngl.Context | None = None
+        self._ctx = None
         self._mode_instance = None
         self._state = _EngineState()
-        self._clock = None
+        self._window = None
 
     # ------------------------------------------------------------------
     # Public API
@@ -74,29 +76,27 @@ class VisualizerEngine:
 
     def run(self):
         """Blocking — must be called from the main thread."""
-        pygame.init()
-        pygame.display.set_caption("Music Visualizer")
+        if not glfw.init():
+            raise RuntimeError("Failed to initialise GLFW")
 
         w = self._config.get("width", 1280)
         h = self._config.get("height", 720)
         fullscreen = self._config.get("fullscreen", False)
 
-        pygame.display.gl_set_attribute(pygame.GL_CONTEXT_MAJOR_VERSION, 3)
-        pygame.display.gl_set_attribute(pygame.GL_CONTEXT_MINOR_VERSION, 3)
-        pygame.display.gl_set_attribute(
-            pygame.GL_CONTEXT_PROFILE_MASK,
-            pygame.GL_CONTEXT_PROFILE_CORE,
-        )
-        if sys.platform == "darwin":
-            # macOS requires forward-compatible flag for OpenGL 3.3 Core Profile.
-            # SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG = 0x0002
-            pygame.display.gl_set_attribute(pygame.GL_CONTEXT_FLAGS, 0x0002)
+        glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
+        glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
+        glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
+        glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, True)  # required on macOS
 
-        flags = pygame.OPENGL | pygame.DOUBLEBUF
-        if fullscreen:
-            flags |= pygame.FULLSCREEN
+        monitor = glfw.get_primary_monitor() if fullscreen else None
+        self._window = glfw.create_window(w, h, "Music Visualizer", monitor, None)
+        if not self._window:
+            glfw.terminate()
+            raise RuntimeError("Failed to create GLFW window — check OpenGL 3.3 support")
 
-        pygame.display.set_mode((w, h), flags)
+        glfw.set_key_callback(self._window, self._key_callback)
+        glfw.make_context_current(self._window)
+        glfw.swap_interval(1)  # vsync on
 
         self._ctx = moderngl.create_context()
         self._ctx.enable(moderngl.PROGRAM_POINT_SIZE)
@@ -106,39 +106,34 @@ class VisualizerEngine:
             self._config.get("preset", {}),
         )
 
-        self._clock = pygame.time.Clock()
         self._state.running = True
         hook = self._state.extra_frame_hook
+        last_time = time.perf_counter()
 
-        while self._state.running:
-            # --- Events ---
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self._state.running = False
-                elif event.type == pygame.KEYDOWN:
-                    self._handle_key(event.key)
-                elif event.type == pygame.VIDEORESIZE:
-                    self._ctx.viewport = (0, 0, event.w, event.h)
+        while not glfw.window_should_close(self._window) and self._state.running:
+            glfw.poll_events()
 
-            # --- Audio update (FFT + beat detection) ---
             if hook:
                 hook()
 
-            # --- Apply queued mode/preset switch ---
             pending = self._state.consume_pending()
             if pending:
                 self._load_mode(*pending)
 
-            # --- Render ---
-            w_px, h_px = pygame.display.get_surface().get_size()
+            w_px, h_px = glfw.get_framebuffer_size(self._window)
             self._ctx.viewport = (0, 0, w_px, h_px)
             self._ctx.clear(0.0, 0.0, 0.0, 1.0)
 
             frame_data = self._analyzer.read_frame()
             self._mode_instance.render(frame_data, self._config.get("preset", {}))
 
-            pygame.display.flip()
-            self._clock.tick(TARGET_FPS)
+            glfw.swap_buffers(self._window)
+
+            now = time.perf_counter()
+            sleep = FRAME_TIME - (now - last_time)
+            if sleep > 0:
+                time.sleep(sleep)
+            last_time = time.perf_counter()
 
         self._cleanup()
 
@@ -149,20 +144,35 @@ class VisualizerEngine:
         self._config["preset"] = preset
 
     def update_preset(self, preset: dict):
-        """Update active preset params — safe to call from any thread."""
         self._config["preset"] = preset
 
     def stop(self):
-        """Request render loop to stop."""
         self._state.running = False
 
     def set_frame_hook(self, hook):
-        """Register a callable invoked once per render frame before drawing."""
         self._state.extra_frame_hook = hook
 
     # ------------------------------------------------------------------
     # Internal
     # ------------------------------------------------------------------
+
+    def _key_callback(self, window, key, scancode, action, mods):
+        if action != glfw.PRESS:
+            return
+        if key == glfw.KEY_ESCAPE:
+            self._state.running = False
+            glfw.set_window_should_close(window, True)
+        elif key == glfw.KEY_F:
+            self._state.show_overlay = not self._state.show_overlay
+        elif key == glfw.KEY_TAB:
+            modes = list(MODE_CLASSES.keys())
+            current = self._config.get("mode", "Abstract")
+            try:
+                idx = modes.index(current)
+            except ValueError:
+                idx = 0
+            nxt = (idx + 1) % len(modes)
+            self.set_mode(modes[nxt], self._config.get("preset", {}))
 
     def _load_mode(self, mode_name: str, preset: dict):
         if self._mode_instance is not None:
@@ -175,19 +185,6 @@ class VisualizerEngine:
     def _cleanup(self):
         if self._mode_instance:
             self._mode_instance.cleanup()
-        pygame.quit()
-
-    def _handle_key(self, key: int):
-        if key == pygame.K_ESCAPE:
-            self._state.running = False
-        elif key == pygame.K_f:
-            self._state.show_overlay = not self._state.show_overlay
-        elif key == pygame.K_TAB:
-            modes = list(MODE_CLASSES.keys())
-            current = self._config.get("mode", "Abstract")
-            try:
-                idx = modes.index(current)
-            except ValueError:
-                idx = 0
-            nxt = (idx + 1) % len(modes)
-            self.set_mode(modes[nxt], self._config.get("preset", {}))
+        if self._window:
+            glfw.destroy_window(self._window)
+        glfw.terminate()

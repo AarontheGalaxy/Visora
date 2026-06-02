@@ -237,6 +237,12 @@ class SelectionScreen:
                     tag="window_list",
                     num_items=7,
                     width=-1,
+                    callback=self._on_window_select,
+                )
+                dpg.add_text(
+                    "No app selected",
+                    tag="window_selected_label",
+                    color=(120, 200, 120),
                 )
                 dpg.add_spacer(height=6)
 
@@ -300,6 +306,15 @@ class SelectionScreen:
             dpg.add_spacer(height=4)
 
             with dpg.tab_bar(tag="preset_tabs"):
+                with dpg.tab(label="All"):
+                    dpg.add_listbox(
+                        items=self._all_preset_names(),
+                        tag="all_preset_list",
+                        num_items=7,
+                        width=-1,
+                        callback=self._on_preset_select,
+                    )
+
                 with dpg.tab(label="Built-in"):
                     dpg.add_listbox(
                         items=self._preset_names(builtin=True),
@@ -484,8 +499,6 @@ class SelectionScreen:
             "Particles": "Particles: Sparks burst on every beat. Great for EDM.",
         }
         dpg.set_value("mode_desc", descs.get(value, ""))
-        names = self._preset_names(builtin=True, mode=value)
-        dpg.configure_item("builtin_preset_list", items=names)
 
     def _on_preset_select(self, _, value):
         if not value:
@@ -522,10 +535,15 @@ class SelectionScreen:
             )
             dpg.set_value("user_preset_list", preset.name)
 
+    def _on_window_select(self, _, value: str):
+        label = f"✓  {value}" if value else "No app selected"
+        dpg.set_value("window_selected_label", label)
+
     def _refresh_windows(self):
         self._all_windows = list_audio_windows()
         self._filtered_windows = list(self._all_windows)
         self._update_window_list_ui()
+        dpg.set_value("window_selected_label", "No app selected")
 
     def _on_window_search(self, _, value: str):
         q = value.strip().lower()
@@ -602,8 +620,11 @@ class SelectionScreen:
             lst = [p for p in lst if p.mode == mode]
         return [p.name for p in lst]
 
+    def _all_preset_names(self) -> list[str]:
+        return [p.name for p in self._presets.all_presets]
+
     def _selected_preset_name(self) -> str | None:
-        for tag in ("builtin_preset_list", "user_preset_list", "fav_preset_list"):
+        for tag in ("all_preset_list", "builtin_preset_list", "user_preset_list", "fav_preset_list"):
             val = dpg.get_value(tag)
             if val:
                 return val
